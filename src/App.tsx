@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Activity, Search, RefreshCw, AlertTriangle } from 'lucide-react';
-import ImageUploader from './components/ImageUploader';
+import PortfolioInput from './components/PortfolioInput';
 import PortfolioTable from './components/PortfolioTable';
 import InsightCards from './components/InsightCards';
-import { extractPortfolioData, analyzeTickers } from './lib/gemini';
+import SubscribeForm from './components/SubscribeForm';
+import { extractPortfolioData, extractPortfolioFromText, analyzeTickers } from './lib/gemini';
 import { PortfolioItem, InsightData } from './types';
 
 export default function App() {
@@ -26,6 +27,24 @@ export default function App() {
       setItems(itemsWithIds);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to extract data from image');
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  const handleTextSubmit = async (text: string) => {
+    setIsExtracting(true);
+    setError(null);
+    setInsights([]); // Clear previous insights
+    try {
+      const extractedData = await extractPortfolioFromText(text);
+      const itemsWithIds = extractedData.map(item => ({
+        ...item,
+        id: crypto.randomUUID()
+      }));
+      setItems(itemsWithIds);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to extract data from text');
     } finally {
       setIsExtracting(false);
     }
@@ -100,7 +119,11 @@ export default function App() {
               Capture Portfolio
             </h2>
           </div>
-          <ImageUploader onImageSelected={handleImageSelected} isLoading={isExtracting} />
+          <PortfolioInput 
+            onImageSelected={handleImageSelected} 
+            onTextSubmit={handleTextSubmit}
+            isLoading={isExtracting} 
+          />
         </section>
 
         {/* Section 2: Verify & Edit */}
@@ -147,6 +170,10 @@ export default function App() {
               </h2>
             </div>
             <InsightCards insights={insights} />
+            
+            <SubscribeForm 
+              tickers={[...new Set(items.map(item => item.ticker.trim().toUpperCase()).filter(ticker => ticker.length >= 2 && ticker.length <= 5 && /^[A-Z]+$/.test(ticker)))]} 
+            />
           </section>
         )}
       </main>

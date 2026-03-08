@@ -50,6 +50,45 @@ export async function extractPortfolioData(base64Image: string, mimeType: string
   }
 }
 
+export async function extractPortfolioFromText(text: string): Promise<Omit<PortfolioItem, 'id'>[]> {
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: [
+        {
+          text: `Extract the portfolio holdings from this text: "${text}". Return a JSON array of objects with the following keys: holdingName (string), ticker (string), shares (number), currentValue (number). If a ticker is not found or not applicable, try to infer it from the holding name. If shares or currentValue are not provided, set them to 0. Ensure numbers do not contain currency symbols or commas.`,
+        },
+      ],
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              holdingName: { type: Type.STRING },
+              ticker: { type: Type.STRING },
+              shares: { type: Type.NUMBER },
+              currentValue: { type: Type.NUMBER },
+            },
+            required: ['holdingName', 'ticker', 'shares', 'currentValue'],
+          },
+        },
+      },
+    });
+
+    if (!response.text) {
+      throw new Error('No response from Gemini');
+    }
+
+    const data = JSON.parse(response.text);
+    return data;
+  } catch (error) {
+    console.error('Error extracting portfolio data from text:', error);
+    throw error;
+  }
+}
+
 export async function analyzeTickers(tickers: string[]): Promise<InsightData[]> {
   try {
     const response = await ai.models.generateContent({
