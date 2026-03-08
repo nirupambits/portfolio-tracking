@@ -1,0 +1,5 @@
+{
+  "name": "Portfolio Pulse",
+  "description": "Extract portfolio data from screenshots and analyze stocks with Google Search grounding.",
+  "requestFramePermissions": []
+}
